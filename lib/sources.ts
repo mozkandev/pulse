@@ -1,41 +1,60 @@
 import type { Source, SourceHealth } from './types';
 
+// SOURCES array'i sadece meta veri tutar (UI'da göstermek için).
+// Her kaynak bir CategorySlug'a bağlı. fetchAllCategories() her kategoriden
+// paralel çektiği için aynı kategori altında birden fazla kaynak olabiliyor
+// (örn. teknoloji → Webrazzi + Chip + TechCrunch + The Verge + Hacker News).
 export const SOURCES: Source[] = [
-  // Gündem
+  // ===== GÜNDEM (TR) =====
   { id: 'aa-guncel', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=guncel', category: 'gundem' },
   { id: 'ntv-gundem', name: 'NTV', url: 'https://www.ntv.com.tr/gundem.rss', category: 'gundem' },
   { id: 'bbc-tr', name: 'BBC Türkçe', url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'gundem' },
   { id: 'euronews-tr', name: 'Euronews TR', url: 'https://tr.euronews.com/rss', category: 'gundem' },
 
-  // Ekonomi
+  // ===== EKONOMİ (TR + global) =====
   { id: 'bloomberght', name: 'Bloomberg HT', url: 'https://www.bloomberght.com/rss', category: 'ekonomi' },
   { id: 'aa-ekonomi', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=ekonomi', category: 'ekonomi' },
+  { id: 'bbc-business', name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', category: 'ekonomi' },
 
-  // Spor
+  // ===== SPOR (TR + EN) =====
   { id: 'fanatik', name: 'Fanatik', url: 'https://www.fanatik.com.tr/rss/anasayfa.xml', category: 'spor' },
   { id: 'trtspor', name: 'TRT Spor', url: 'https://www.trtspor.com.tr/rss/anasayfa.xml', category: 'spor' },
+  { id: 'espn', name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'spor' },
+  { id: 'bbc-sport', name: 'BBC Sport', url: 'https://feeds.bbci.co.uk/sport/rss.xml', category: 'spor' },
 
-  // Teknoloji
+  // ===== TEKNOLOJİ (TR + EN, ağırlıklı) =====
   { id: 'webrazzi', name: 'Webrazzi', url: 'https://webrazzi.com/feed', category: 'teknoloji' },
   { id: 'chip', name: 'Chip', url: 'https://www.chip.com.tr/rss', category: 'teknoloji' },
+  { id: 'techcrunch', name: 'TechCrunch', url: 'https://techcrunch.com/feed/', category: 'teknoloji' },
+  { id: 'theverge', name: 'The Verge', url: 'https://www.theverge.com/rss/index.xml', category: 'teknoloji' },
+  { id: 'arstechnica', name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index', category: 'teknoloji' },
+  { id: 'macrumors', name: 'MacRumors', url: 'https://feeds.macrumors.com/MacRumors-All', category: 'teknoloji' },
+  { id: 'hn-frontpage', name: 'Hacker News', url: 'https://hnrss.org/frontpage', category: 'teknoloji' },
+  { id: 'lobsters', name: 'Lobsters', url: 'https://lobste.rs/rss', category: 'teknoloji' },
+  { id: 'bleepingcomputer', name: 'BleepingComputer', url: 'https://www.bleepingcomputer.com/feed/', category: 'teknoloji' },
+  { id: 'bbc-tech', name: 'BBC Technology', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', category: 'teknoloji' },
 
-  // Politika
+  // ===== POLİTİKA (TR) =====
   { id: 'aa-siyaset', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=politika', category: 'politika' },
 
-  // Dünya
-  { id: 'bbc-tr-dunya', name: 'BBC Türkçe', url: 'https://feeds.bbci.co.uk/turkce/rss.xml', category: 'dunya' },
+  // ===== DÜNYA (global + TR) =====
+  { id: 'bbc-world', name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', category: 'dunya' },
+  { id: 'nyt-world', name: 'NYT World', url: 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml', category: 'dunya' },
+  { id: 'aljazeera', name: 'Al Jazeera', url: 'https://www.aljazeera.com/xml/rss/all.xml', category: 'dunya' },
   { id: 'euronews-dunya', name: 'Euronews TR', url: 'https://tr.euronews.com/rss', category: 'dunya' },
 
-  // Kültür-Sanat
+  // ===== KÜLTÜR-SANAT (TR) =====
   { id: 'aa-kultur', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=kultur-sanat', category: 'kultur-sanat' },
 
-  // Sağlık
+  // ===== SAĞLIK (TR + EN) =====
   { id: 'aa-saglik', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=saglik', category: 'saglik' },
+  { id: 'bbc-health', name: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', category: 'saglik' },
 
-  // Çevre
+  // ===== ÇEVRE (TR + EN) =====
   { id: 'aa-cevre', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=cevre', category: 'cevre' },
+  { id: 'bbc-science', name: 'BBC Science', url: 'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml', category: 'cevre' },
 
-  // Eğitim
+  // ===== EĞİTİM (TR) =====
   { id: 'aa-egitim', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=egitim', category: 'egitim' },
 ];
 

@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { CATEGORY_SLUGS, categoryName, categoryIcon, type CategorySlug } from '@/lib/types';
+import { CATEGORY_SLUGS, categoryName, categoryAccent, categoryIcon, type CategorySlug } from '@/lib/types';
 
-export function Sidebar() {
-  const pathname = usePathname();
+interface SidebarProps {
+  categoryCounts: Record<string, number>;
+  totalAllItems: number;
+}
+
+export function Sidebar({ categoryCounts, totalAllItems }: SidebarProps) {
   const [now, setNow] = useState<string>('--:--');
   const [sourceCount, setSourceCount] = useState<{ ok: number; fail: number; total: number } | null>(null);
+  const [sources, setSources] = useState<{ id: string; name: string; status: string; category: string }[]>([]);
 
   useEffect(() => {
     const tick = () => {
@@ -29,14 +33,10 @@ export function Sidebar() {
         const ok = data.sources?.filter((s: any) => s.status === 'ok').length || 0;
         const fail = data.sources?.filter((s: any) => s.status === 'fail').length || 0;
         setSourceCount({ ok, fail, total: data.sources?.length || 0 });
+        setSources(data.sources || []);
       })
       .catch(() => {});
   }, []);
-
-  const isActive = (slug: CategorySlug) => {
-    if (slug === 'gundem') return pathname === '/' || pathname === '/gundem';
-    return pathname === `/${slug}`;
-  };
 
   return (
     <aside className="hidden md:flex w-[240px] shrink-0 h-screen sticky top-0 flex-col border-r border-border bg-panel">
@@ -44,10 +44,10 @@ export function Sidebar() {
       <div className="px-5 py-5 border-b border-border-subtle">
         <Link href="/" className="flex items-baseline gap-2 group">
           <span className="text-2xl font-semibold tracking-tight text-text">Pulse</span>
-          <span className="text-[10px] uppercase tracking-[0.18em] text-text-3 group-hover:text-text-2 transition-colors">v1</span>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-text-3 group-hover:text-text-2 transition-colors">v2</span>
         </Link>
         <p className="mt-1 text-[11px] text-text-3 leading-snug">
-          Türkiye Haber Terminali
+          Türkiye + Dünya Haber Terminali
         </p>
       </div>
 
@@ -63,39 +63,57 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories — sadece özet */}
       <nav className="flex-1 overflow-y-auto px-2 py-1">
-        <div className="px-3 pt-2 pb-1.5 text-eyebrow text-text-4">Kategoriler</div>
+        <div className="px-3 pt-2 pb-1.5 text-eyebrow text-text-4 flex items-center justify-between">
+          <span>Kategoriler</span>
+          <span className="text-text-4 font-mono tabular-nums">{totalAllItems}</span>
+        </div>
         <ul className="space-y-0.5">
           {CATEGORY_SLUGS.map((slug) => {
-            const active = isActive(slug);
+            const count = categoryCounts[slug] || 0;
             return (
-              <li key={slug}>
-                <Link
-                  href={slug === 'gundem' ? '/' : `/${slug}`}
-                  className={[
-                    'group flex items-center gap-3 px-3 py-2 rounded-md text-[13px] transition-colors',
-                    active
-                      ? 'bg-surface text-text'
-                      : 'text-text-2 hover:bg-surface hover:text-text',
-                  ].join(' ')}
+              <li
+                key={slug}
+                className="group flex items-center gap-3 px-3 py-1.5 rounded-md text-[12.5px] text-text-2"
+              >
+                <span
+                  className="text-[13px] w-4 inline-flex items-center justify-center"
+                  style={{ color: categoryAccent[slug] }}
                 >
-                  <span
-                    className={[
-                      'text-[14px] w-4 inline-flex items-center justify-center transition-colors',
-                      active ? 'text-accent-hi' : 'text-text-3 group-hover:text-text-2',
-                    ].join(' ')}
-                  >
-                    {categoryIcon[slug]}
-                  </span>
-                  <span className="flex-1">{categoryName[slug]}</span>
-                  {active && (
-                    <span className="w-1 h-1 rounded-full bg-accent-hi" />
-                  )}
-                </Link>
+                  {categoryIcon[slug]}
+                </span>
+                <span className="flex-1">{categoryName[slug]}</span>
+                <span className="text-[10px] text-text-4 font-mono tabular-nums">
+                  {count}
+                </span>
               </li>
             );
           })}
+        </ul>
+
+        {/* Sources list */}
+        <div className="px-3 pt-4 pb-1.5 text-eyebrow text-text-4">Kaynaklar</div>
+        <ul className="space-y-0.5 pb-3">
+          {sources.map((s) => (
+            <li
+              key={s.id}
+              className="group flex items-center gap-2 px-3 py-1 rounded-md text-[11.5px] text-text-3 hover:text-text-2 transition-colors"
+            >
+              <span
+                className={`w-1 h-1 rounded-full ${
+                  s.status === 'ok' ? 'bg-success' : s.status === 'fail' ? 'bg-warn' : 'bg-text-4'
+                }`}
+              />
+              <span className="flex-1 truncate">{s.name}</span>
+              <span className="text-[9px] text-text-4 uppercase tracking-wider">
+                {s.status === 'ok' ? 'live' : s.status === 'fail' ? 'down' : '...'}
+              </span>
+            </li>
+          ))}
+          {sources.length === 0 && (
+            <li className="px-3 py-2 text-[11px] text-text-4">Yükleniyor…</li>
+          )}
         </ul>
       </nav>
 
@@ -109,7 +127,7 @@ export function Sidebar() {
           <span className="text-text-4 font-mono tabular-nums">{now}</span>
         </div>
         <div className="text-text-4 leading-snug">
-          RSS kaynaklarından canlı. 5dk önbellek.
+          30+ RSS · 5dk önbellek · gerçek zamanlı
         </div>
       </div>
     </aside>

@@ -1,6 +1,6 @@
 import * as rssParser from 'rss-parser';
 import { cacheGet, cacheSet } from './cache';
-import { getSourcesForCategory, recordSourceSuccess, recordSourceFailure } from './sources';
+import { getSourcesForCategory, recordSourceSuccess, recordSourceFailure, SOURCES } from './sources';
 import { getDemoDataForCategory } from './demoData';
 import type { NewsItem, FeedResponse, CategorySlug, Source } from './types';
 
@@ -117,25 +117,93 @@ export async function fetchCategory(category: CategorySlug): Promise<FeedRespons
   return response;
 }
 
+// Tüm kategorileri paralel çeker, TEK response döner.
+// Client-side filter için optimize. Promise.allSettled ile bir kaynağın
+// fail olması diğerlerini bloklamaz. 8s toplam timeout her kategori için.
+export interface AllFeedsResponse {
+  items: NewsItem[];                       // tüm kategorilerden birleşik, tarih sıralı
+  byCategory: Record<string, NewsItem[]>;   // client-side anlık filter için
+  meta: {
+    fetchedAt: number;
+    fromCache: boolean;
+    sourceCount: number;
+    unavailable: string[];                  // tüm fail olan kaynaklar
+    categoryCounts: Record<string, number>;
+    total: number;
+  };
+}
+
+const ALL_CATEGORIES: CategorySlug[] = [
+  'gundem', 'ekonomi', 'spor', 'teknoloji', 'politika',
+  'dunya', 'kultur-sanat', 'saglik', 'cevre', 'egitim',
+];
+
+export async function fetchAllCategories(): Promise<AllFeedsResponse> {
+  const cacheKey = 'feed:all';
+  const cached = cacheGet<AllFeedsResponse>(cacheKey);
+  if (cached) {
+    return { ...cached, meta: { ...cached.meta, fromCache: true } };
+  }
+
+  // Her kategoriyi paralel çek
+  const categoryResults = await Promise.allSettled(
+    ALL_CATEGORIES.map(cat => fetchCategory(cat))
+  );
+
+  const byCategory: Record<string, NewsItem[]> = {};
+  const unavailable: string[] = [];
+  const categoryCounts: Record<string, number> = {};
+  let totalItems = 0;
+
+  categoryResults.forEach((result, idx) => {
+    const cat = ALL_CATEGORIES[idx];
+    if (result.status === 'fulfilled') {
+      byCategory[cat] = result.value.items;
+      categoryCounts[cat] = result.value.items.length;
+      totalItems += result.value.items.length;
+      result.value.meta.unavailable.forEach(name => {
+        if (!unavailable.includes(name)) unavailable.push(name);
+      });
+    } else {
+      byCategory[cat] = [];
+      categoryCounts[cat] = 0;
+    }
+  });
+
+  // Birleşik liste, tarih sıralı
+  const allItems: NewsItem[] = Object.values(byCategory)
+    .flat()
+    .sort((a, b) => b.publishedTimestamp - a.publishedTimestamp);
+
+  const response: AllFeedsResponse = {
+    items: allItems,
+    byCategory,
+    meta: {
+      fetchedAt: Date.now(),
+      fromCache: false,
+      sourceCount: SOURCES.length,
+      unavailable,
+      categoryCounts,
+      total: totalItems,
+    },
+  };
+
+  cacheSet(cacheKey, response, CACHE_TTL_MS);
+  return response;
+}
+
 export async function fetchBreaking(limit = 10): Promise<NewsItem[]> {
   const cacheKey = `breaking:${limit}`;
   const cached = cacheGet<NewsItem[]>(cacheKey);
   if (cached) return cached;
 
-  const allCategories: CategorySlug[] = [
-    'gundem', 'ekonomi', 'spor', 'teknoloji', 'politika',
-    'dunya', 'kultur-sanat', 'saglik', 'cevre', 'egitim',
-  ];
+  const all = await fetchAllCategories();
 
-  const results = await Promise.all(allCategories.map(fetchCategory));
-  const allItems = results.flatMap(r => r.items);
-
-  const breaking = allItems
+  const breaking = all.items
     .filter(i => i.publishedTimestamp > Date.now() - 6 * 60 * 60 * 1000)
-    .sort((a, b) => b.publishedTimestamp - a.publishedTimestamp)
     .slice(0, limit);
 
-  const final = breaking.length > 0 ? breaking : allItems.slice(0, limit);
+  const final = breaking.length > 0 ? breaking : all.items.slice(0, limit);
   cacheSet(cacheKey, final, CACHE_TTL_MS);
   return final;
 }
