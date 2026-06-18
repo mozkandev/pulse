@@ -15,6 +15,9 @@ export const SOURCES: Source[] = [
   // ===== SPOR (TR + EN) =====
   { id: 'fanatik', name: 'Fanatik', url: 'https://www.fanatik.com.tr/rss/anasayfa.xml', category: 'spor' },
   { id: 'trtspor', name: 'TRT Spor', url: 'https://www.trtspor.com.tr/rss/anasayfa.xml', category: 'spor' },
+  { id: 'sabah-spor', name: 'Sabah Spor', url: 'https://www.sabah.com.tr/rss/spor.xml', category: 'spor' },
+  { id: 'fotomac', name: 'Fotomaç', url: 'https://www.fotomac.com.tr/rss/anasayfa.xml', category: 'spor' },
+  { id: 'haberglobal-spor', name: 'Haber Global Spor', url: 'https://www.haberglobal.com.tr/rss/spor', category: 'spor' },
   { id: 'espn', name: 'ESPN', url: 'https://www.espn.com/espn/rss/news', category: 'spor' },
   { id: 'bbc-sport', name: 'BBC Sport', url: 'https://feeds.bbci.co.uk/sport/rss.xml', category: 'spor' },
 

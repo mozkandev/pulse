@@ -152,7 +152,7 @@ body {
   background-clip: text;
 }
 
-/* Image placeholders */
+/* Image placeholders — fallback gradient + source initials */
 .placeholder-gradient {
   background: linear-gradient(135deg, var(--surface) 0%, var(--hover) 100%);
 }
