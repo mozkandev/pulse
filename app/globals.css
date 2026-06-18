@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;510;590;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Linear.app palette */
+  --bg: #08090a;
+  --panel: #0f1011;
+  --surface: #191a1b;
+  --hover: #28282c;
+  --line: #141516;
+
+  --text: #f7f8f8;
+  --text-2: #d0d6e0;
+  --text-3: #8a8f98;
+  --text-4: #62666d;
+
+  --accent: #5e6ad2;
+  --accent-hi: #7170ff;
+  --accent-hi2: #828fff;
+
+  --break: #dc2626;
+  --break-hi: #ef4444;
+  --success: #10b981;
+  --warn: #f59e0b;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.12);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-surface: var(--surface);
+  --color-hover: var(--hover);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-4: var(--text-4);
+  --color-accent: var(--accent);
+  --color-accent-hi: var(--accent-hi);
+  --color-accent-hi2: var(--accent-hi2);
+  --color-break: var(--break);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+  font-feature-settings: "cv01", "ss03", "ss04";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* Display typography */
+.text-display {
+  letter-spacing: -0.04em;
+  font-weight: 510;
+  line-height: 1;
+}
+.text-h1 {
+  letter-spacing: -0.022em;
+  font-weight: 510;
+  line-height: 1.13;
+}
+.text-h2 {
+  letter-spacing: -0.012em;
+  font-weight: 510;
+  line-height: 1.25;
+}
+.text-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 510;
+  font-size: 0.6875rem;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.card-hover:hover {
+  background: var(--surface);
+  border-color: var(--border-strong);
+}
+
+/* Ticker animation */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  animation: ticker-scroll 90s linear infinite;
+  will-change: transform;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* Subtle pulse for breaking */
+@keyframes breaking-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.breaking-pulse {
+  animation: breaking-pulse 1.5s ease-in-out infinite;
+}
+
+/* Gradient text accent */
+.gradient-text {
+  background: linear-gradient(180deg, var(--text) 0%, var(--text-3) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Image placeholders */
+.placeholder-gradient {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--hover) 100%);
+}
