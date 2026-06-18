@@ -51,11 +51,10 @@ function ImageArea({ item, large = false }: { item: NewsItem; large?: boolean })
       <img
         src={item.imageUrl}
         alt=""
-        className={`absolute inset-0 w-full h-full object-cover group-hover:scale-[${large ? '1.02' : '1.03'}] transition-transform duration-500`}
+        className={`absolute inset-0 w-full h-full object-cover z-10 group-hover:scale-[${large ? '1.02' : '1.03'}] transition-transform duration-500`}
         onError={(e) => {
           const t = e.currentTarget as HTMLImageElement;
           t.style.display = 'none';
-          t.parentElement?.classList.add('image-fallback-active');
         }}
       />
     );
