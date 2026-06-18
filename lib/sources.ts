@@ -1,9 +1,5 @@
 import type { Source, SourceHealth } from './types';
 
-// SOURCES array'i sadece meta veri tutar (UI'da göstermek için).
-// Her kaynak bir CategorySlug'a bağlı. fetchAllCategories() her kategoriden
-// paralel çektiği için aynı kategori altında birden fazla kaynak olabiliyor
-// (örn. teknoloji → Webrazzi + Chip + TechCrunch + The Verge + Hacker News).
 export const SOURCES: Source[] = [
   // ===== GÜNDEM (TR) =====
   { id: 'aa-guncel', name: 'Anadolu Ajansı', url: 'https://www.aa.com.tr/tr/rss/default?cat=guncel', category: 'gundem' },
@@ -66,6 +62,18 @@ export function getSourceById(id: string): Source | undefined {
   return SOURCES.find(s => s.id === id);
 }
 
+const sourceHealthMap = new Map<string, { status: 'ok' | 'fail'; lastFetch: number; errorCount: number }>();
+
+export function recordSourceSuccess(sourceId: string) {
+  const existing = sourceHealthMap.get(sourceId) || { status: 'ok' as const, lastFetch: 0, errorCount: 0 };
+  sourceHealthMap.set(sourceId, { ...existing, status: 'ok', lastFetch: Date.now() });
+}
+
+export function recordSourceFailure(sourceId: string) {
+  const existing = sourceHealthMap.get(sourceId) || { status: 'fail' as const, lastFetch: 0, errorCount: 0 };
+  sourceHealthMap.set(sourceId, { ...existing, status: 'fail', lastFetch: Date.now(), errorCount: existing.errorCount + 1 });
+}
+
 export function getAllSourceHealth(): SourceHealth[] {
   return SOURCES.map(s => {
     const h = sourceHealthMap.get(s.id);
@@ -81,14 +89,22 @@ export function getAllSourceHealth(): SourceHealth[] {
   });
 }
 
-const sourceHealthMap = new Map<string, { status: 'ok' | 'fail'; lastFetch: number; errorCount: number }>();
-
-export function recordSourceSuccess(sourceId: string) {
-  const existing = sourceHealthMap.get(sourceId) || { status: 'ok' as const, lastFetch: 0, errorCount: 0 };
-  sourceHealthMap.set(sourceId, { ...existing, status: 'ok', lastFetch: Date.now() });
-}
-
-export function recordSourceFailure(sourceId: string) {
-  const existing = sourceHealthMap.get(sourceId) || { status: 'fail' as const, lastFetch: 0, errorCount: 0 };
-  sourceHealthMap.set(sourceId, { ...existing, status: 'fail', lastFetch: Date.now(), errorCount: existing.errorCount + 1 });
+// Eğer health map boşsa (cold start), ilk çağrıda tüm kaynakları
+// arka planda probe et ki sidebar ilk render'da doğru durumu gösterir.
+let warmedUp = false;
+export function ensureSourcesWarmedUp() {
+  if (warmedUp) return;
+  warmedUp = true;
+  // Sadece cold start'ta, arka planda, fire-and-forget.
+  Promise.allSettled(
+    SOURCES.map(async (s) => {
+      try {
+        const res = await fetch(s.url, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+        if (res.ok) recordSourceSuccess(s.id);
+        else recordSourceFailure(s.id);
+      } catch {
+        recordSourceFailure(s.id);
+      }
+    })
+  ).catch(() => {});
 }
