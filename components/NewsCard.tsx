@@ -97,7 +97,8 @@ function SourceLogoArea({ item, large = false }: { item: NewsItem; large?: boole
           src={logoUrl}
           alt={item.source}
           className="w-full h-full object-contain"
-          loading="lazy"
+          // loading="lazy" kaldırıldı — 64×64 favicon zaten 1KB, lazy loading
+          // gecikmeli render ediyor ve screenshot/reflow'ı bozuyor
           onError={(e) => {
             const tile = (e.currentTarget as HTMLImageElement).closest('[data-source-logo]') as HTMLElement | null;
             if (tile) tile.style.display = 'none';
