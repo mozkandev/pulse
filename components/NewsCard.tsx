@@ -2,6 +2,7 @@
 
 import type { NewsItem } from '@/lib/types';
 import { categoryName, categoryAccent } from '@/lib/types';
+import { getSourceById } from '@/lib/sources';
 
 function timeAgo(timestamp: number): string {
   const diff = Date.now() - timestamp;
@@ -35,7 +36,6 @@ function gradientForSource(name: string): string {
     ['#1e293b', '#64748b'], // slate
   ];
   const [from, to] = palettes[Math.abs(hash) % palettes.length];
-  // İki köşeli 135deg gradient — kaynak adının baş harfleri üstte
   return `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
 }
 
@@ -45,6 +45,20 @@ function sourceInitials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// Item için en iyi logo URL'ini çöz: source.logoUrl → source.logoDomain (Google S2) → undefined.
+// Google S2 favicon API'si Clearbit'in alternatifi: DNS çözümlenir, CDN cache'li,
+// rate limit yok, ücretsiz, her domain için 64x64 PNG döner.
+function resolveLogoUrl(item: NewsItem): string | undefined {
+  const src = getSourceById(item.sourceId);
+  if (!src) return undefined;
+  if (src.logoUrl) return src.logoUrl;
+  if (src.logoDomain) {
+    return `https://www.google.com/s2/favicons?domain=${src.logoDomain}&sz=64`;
+  }
+  return undefined;
+}
+
+// 3 katmanlı görsel: haber görseli > kaynak logosu > gradient + initials
 function ImageArea({ item, large = false }: { item: NewsItem; large?: boolean }) {
   if (item.imageUrl) {
     return (
@@ -55,6 +69,9 @@ function ImageArea({ item, large = false }: { item: NewsItem; large?: boolean })
         onError={(e) => {
           const t = e.currentTarget as HTMLImageElement;
           t.style.display = 'none';
+          // parent placeholder'ı göster
+          const parent = t.parentElement;
+          if (parent) parent.dataset.imgerr = '1';
         }}
       />
     );
@@ -62,22 +79,66 @@ function ImageArea({ item, large = false }: { item: NewsItem; large?: boolean })
   return null;
 }
 
-// Image yokken veya yüklenemediğinde gradient + initial göster
+// Logo katmanı: imageUrl yoksa VE haber resmi yüklenemediyse gösterilir.
+// 64×64 Google S2 favicon'unu white tile içinde gösterir — bütün kartlarda
+// tutarlı görünür. Logo 404 dönerse sadece tile gizlenir, gradient fallback devrede kalır.
+function SourceLogoArea({ item, large = false }: { item: NewsItem; large?: boolean }) {
+  const logoUrl = resolveLogoUrl(item);
+  if (!logoUrl) return null;
+  const size = large ? 'w-20 h-20 sm:w-28 sm:h-28' : 'w-14 h-14 sm:w-16 sm:h-16';
+  return (
+    <div className="absolute inset-0 z-[5] flex items-center justify-center pointer-events-none">
+      <div
+        data-source-logo
+        className={`${size} rounded-2xl bg-white/95 p-2.5 shadow-lg flex items-center justify-center transition-opacity`}
+        style={{ backdropFilter: 'blur(8px)' }}
+      >
+        <img
+          src={logoUrl}
+          alt={item.source}
+          className="w-full h-full object-contain"
+          loading="lazy"
+          onError={(e) => {
+            const tile = (e.currentTarget as HTMLImageElement).closest('[data-source-logo]') as HTMLElement | null;
+            if (tile) tile.style.display = 'none';
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Gradient + initials — son çare. Sadece image + logo yoksa görünür.
 function PlaceholderGradient({ item, large = false }: { item: NewsItem; large?: boolean }) {
   const initials = sourceInitials(item.source);
+  // Sadece image ve logo yoksa göster (logo varsa arka planda subtle)
+  const hasImage = !!item.imageUrl;
+  const hasLogo = !!resolveLogoUrl(item);
+  if (hasImage || hasLogo) {
+    // Logo varsa gradient daha subtle olsun, image varsa gradient gizli
+    return (
+      <div
+        className="absolute inset-0"
+        style={{
+          background: gradientForSource(item.source),
+          opacity: hasImage ? 0 : 0.6,
+        }}
+      />
+    );
+  }
   return (
     <div
       className="absolute inset-0 flex items-center justify-center"
       style={{ background: gradientForSource(item.source) }}
     >
       <div
-        className={`absolute inset-0 opacity-50 ${large ? '' : ''}`}
+        className="absolute inset-0 opacity-50"
         style={{
           background: 'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12) 0%, transparent 60%)',
         }}
       />
       <span
-        className={`relative ${large ? 'text-[80px] sm:text-[120px]' : 'text-[40px] sm:text-[52px]'} font-bold text-white/30 tracking-tighter select-none`}
+        className={`relative ${large ? 'text-[60px] sm:text-[80px]' : 'text-[32px] sm:text-[40px]'} font-bold text-white/30 tracking-tighter select-none`}
         style={{ fontFamily: 'system-ui, -apple-system, sans-serif', letterSpacing: '-0.05em' }}
       >
         {initials}
@@ -103,11 +164,12 @@ export function NewsCard({ item, variant = 'standard', onClick }: NewsCardProps)
       >
         <div className="grid grid-cols-1 md:grid-cols-5 gap-0">
           <div className="md:col-span-3 aspect-[16/10] md:aspect-auto md:min-h-[320px] bg-surface relative overflow-hidden">
-            <ImageArea item={item} large />
             <PlaceholderGradient item={item} large />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <SourceLogoArea item={item} large />
+            <ImageArea item={item} large />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
             {item.isBreaking && (
-              <span className="absolute top-4 left-4 px-2.5 py-1 bg-break text-white text-[10px] font-semibold rounded tracking-[0.1em] uppercase flex items-center gap-1.5">
+              <span className="absolute top-4 left-4 z-20 px-2.5 py-1 bg-break text-white text-[10px] font-semibold rounded tracking-[0.1em] uppercase flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-white breaking-pulse" />
                 Son Dakika
               </span>
@@ -171,10 +233,11 @@ export function NewsCard({ item, variant = 'standard', onClick }: NewsCardProps)
       className="group cursor-pointer rounded-xl bg-panel border border-border overflow-hidden card-hover flex flex-col"
     >
       <div className="aspect-[16/9] bg-surface relative overflow-hidden">
-        <ImageArea item={item} />
         <PlaceholderGradient item={item} />
+        <SourceLogoArea item={item} />
+        <ImageArea item={item} />
         {item.isBreaking && (
-          <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 bg-break text-white text-[9px] font-semibold rounded tracking-wider uppercase flex items-center gap-1">
+          <span className="absolute top-2.5 left-2.5 z-20 px-1.5 py-0.5 bg-break text-white text-[9px] font-semibold rounded tracking-wider uppercase flex items-center gap-1">
             <span className="w-1 h-1 rounded-full bg-white breaking-pulse" />
             Son Dakika
           </span>

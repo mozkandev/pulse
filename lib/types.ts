@@ -20,6 +20,16 @@ export interface Source {
   name: string;
   url: string;
   category: CategorySlug;
+  /**
+   * Manuel logo URL — Wikimedia/brand CDN'den.
+   * Belirtilmemişse `logoDomain` clearbit'e gider, o da yoksa gradient placeholder.
+   */
+  logoUrl?: string;
+  /**
+   * Clearbit fallback domain — örn. "espn.com".
+   * `logoUrl` yoksa kullanılır.
+   */
+  logoDomain?: string;
 }
 
 export interface NewsItem {
